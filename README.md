@@ -25,7 +25,7 @@ This is a script for use with Lidarr to automatically grab album information fro
 - Add `- /path/to/beets-lidarr:/beets` as a volume. This should point to the folder containing the `beets-lidarr` scripts and config.
 - Get API keys from your favorite gazelle music trackers and set them as `API_KEY_OPS` and/or `API_KEY_RED` in the environment.
   - Note that `beets-lidarr` will still run and tag music without API keys, it just won't be able to use the tracker's metadata for the beets search.
-- Start the container, open Lidarr, and go to `Setting -> Connect -> + -> Custom Script`
+- Start the container, open Lidarr, and go to `Settings -> Connect -> + -> Custom Script`
   - Set notification triggers to `On Release Import` and `On Upgrade`
   - Set the script path to `beets-lidarr.sh`
   - Test and save
