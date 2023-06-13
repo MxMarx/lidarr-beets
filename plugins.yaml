@@ -1,0 +1,50 @@
+# List of useful plugins.
+# Commented out (#) plugins are not in use yet.
+
+plugins:
+  [
+  ######## Autotagger ##################################################################################################
+  bandcamp,        # Beetcamp. Use bandcamp as an autotagger source for eg. artwork and lyrics.
+  chroma,          # Use acoustic fingerprinting to identify audio files with missing or incorrect metadata.
+#  discogs,         # Search for releases in the Discogs database.
+  fromfilename,    # TGuess metadata for untagged tracks from their filenames.
+  originquery,     # Augments MusicBrainz queries with locally-sourced data to improve autotagger results.
+#  spotify,         # Search for releases in the Spotify database.
+
+  ######## Metadata ####################################################################################################
+  acousticbrainz,  # DEPRECIATED replace with beets-xtractor if you want
+#  xtractor,
+  fetchart,        # Retrieves album art images from various sources on the Web and stores them as image files.
+  lastgenre,       # Fetches tags from Last.fm and assigns them as genres to your albums and items.
+  lyrics,          # Fetches and stores song lyrics from databases on the Web.
+  mbsync,          # Fetch updated metadata from MusicBrainz. This plugin provides the mbsync command,
+  parentwork,      # Fetches the work title, parent work title and parent work composer from MusicBrainz.
+
+  ######## Formatting ##################################################################################################
+  # bucket,          # Groups your files into buckets folders representing ranges.
+  the,             # Move patterns in path formats (i.e., move “a” and “the” to the end).
+
+  ######## Interoperability ############################################################################################
+  badfiles,        # Check audio file integrity.
+#  check,          # DEPRECIATED
+  convert,         # Lets you transcoding audio and embedding album art.
+#  extrafiles,      # A plugin that moves non-music files during the import process.
+
+  ######## Miscellaneous ###############################################################################################
+  duplicates,      # Adds a new command, duplicates or dup, which finds and lists duplicate tracks or albums in your collection.
+  edit,            # Lets you modify music metadata using your favorite text editor. ToDo: No config file yet.
+  embedart,        # Embed the album art directly into each file’s metadata.
+  export,          # Lets you get data from the items and export the content as JSON, CSV, or XML.
+  # follow,          # Get notifications about new releases from album artists in your Beets library using muspy.
+  hook,            # Lets you run commands in response to these events.
+  importadded,     # Useful when an existing collection is imported and the time when albums and items were added should be preserved.
+  info,            # Print music files’ tags to the console.
+  # lastimport,      # Collect play counts from Last.fm.
+  mbcollection,    # Lets you submit your catalog to MusicBrainz to maintain your music collection list there.
+  mbsubmit,        # Provides an extra prompt choice during an import session that prints the tracks
+                   # of the current album in a format that is parseable by MusicBrainz’s track parser.
+  missing,         # List missing tracks with 'beet missing'
+  permissions,     # Set file permissions for imported music files and its directories. Permissions will be adjusted automatically on import.
+  replaygain,      # This plugin adds support for ReplayGain, a technique for normalizing audio playback levels.
+  unimported       # Allows to list all files in the library folder which are not listed in the beets library database, including art files.
+  ]

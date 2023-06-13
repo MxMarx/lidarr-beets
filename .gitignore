@@ -1,0 +1,7 @@
+.idea/
+library.db
+/node_modules/
+package.json
+package-lock.json
+spotify_token.json
+secrets.yaml
