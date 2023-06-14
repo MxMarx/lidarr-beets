@@ -1,25 +1,19 @@
 beets-lidarr
 ============
 
-This is a script for use with Lidarr to automatically grab album information from your favorite Gazelle-based music trackers with [gazelle-origin](https://github.com/x1ppy/gazelle-origin), and tags the files with beets using the metadata from the tracker to improve accuracy with [beets-originquery](https://github.com/x1ppy/beets-originquery).
+The `beets-lidarr` script automatically run beets [beets](https://beets.readthedocs.io/en/stable/) when Lidarr imports a download. If the download came from a Gazelle-based music tracker, then `beets-lidarr` will query the tracker for the album's release info with [gazelle-origin](https://github.com/x1ppy/gazelle-origin) to improve beets matching accuracy using [beets-originquery](https://github.com/x1ppy/beets-originquery).
 
 ## How it works:
 
-- First, `lidarr-beets` gets the album's hash and tracker
-    - If Lidarr sent the album to the download client, this script can determine the correct tracker from with Lidarr's grab history. If the torrent was manually downloaded, it tries both RED and OPS (provided their API key environmental variables exist).
-    - Lidarr logs the hash when the download is imported
-- Then, we pass the hash and tracker to [gazelle-origin](https://github.com/x1ppy/gazelle-origin), which downloads the album's metadata to a yaml file in the album folder/
-- Run beets with the [beets-originquery](https://github.com/x1ppy/beets-originquery) plugin, which uses the downloaded metadata to find the release in Musicbrainz, and write the tags to the files.
-- Finally, update the release version in Lidarr to match what beets detected (probably not necessary).
+- First, `beets-lidarr` retrieves the album's hash and tracker from Lidarr.
+    - If Lidarr sent the album to the download client, this script can determine the correct tracker using Lidarr's grab history. If the torrent was manually downloaded, it tries both RED and OPS (provided their API key environmental variables exist).
+- Then, the hash and tracker are passed to [gazelle-origin](https://github.com/x1ppy/gazelle-origin), which downloads the album's metadata to a YAML file in the album folder/
+- Beets is then run with the [beets-originquery](https://github.com/x1ppy/beets-originquery) plugin, which uses the downloaded metadata in the Musicbrainz search query, and then writes the tags to the files.
+- Finally, `beets-lidarr` updates the release version in Lidarr to match what beets detected.
 
 ## Setup
-
-`lidarr-beets` can work with an existing beets database, but it doesn't need it.
-
-
-
 ### docker-compose
-- Clone this repo or put `lidarr-beets.py`, `lidarr-beets.sh`, `config.yaml`, and `plugins.yaml` into a folder where the beets database will exist.
+- Clone this repo and put `lidarr-beets.py`, `lidarr-beets.sh`, `config.yaml`, and `plugins.yaml` into the folder for the beets database.
   - You can use this with an existing beets database too, but it's probably a good idea to make sure the music paths inside docker match the system.
 - If you are using the [linuxserver/lidarr](https://hub.docker.com/r/linuxserver/lidarr) docker image or [lidarr-extended](https://hub.docker.com/r/randomninjaatk/lidarr-extended), you can install all the dependencies with linuxserver's [universal-package-install](https://github.com/linuxserver/docker-mods/tree/universal-package-install) mod, shown below.
 - Add `- /path/to/beets-lidarr:/beets` as a volume. This should point to the folder containing the `beets-lidarr` scripts and config.
@@ -29,7 +23,7 @@ This is a script for use with Lidarr to automatically grab album information fro
   - Set notification triggers to `On Release Import` and `On Upgrade`
   - Set the script path to `beets-lidarr.sh`
   - Test and save
-- That's it! Next time Lidarr imports a release, `beets-lidarr` should automatically run! To verify that it's working, check `beets-lidarr.txt` in the log section.
+- That's it! Next time Lidarr imports a release, `beets-lidarr` should automatically run! Check `beets-lidarr.txt` in the log section to verify that it's working.
 
 ~~~
   lidarr:
@@ -51,12 +45,11 @@ This is a script for use with Lidarr to automatically grab album information fro
 
 ## Beets Config
 
-The provided beets configuration file, `config.yaml`, is basically a clone of [this beautiful config](https://github.com/florib779/beets-config) with a few modifications, so everything should work out of the box.
+The provided beets configuration file `config.yaml` is basically a clone of [this beautiful config](https://github.com/florib779/beets-config) with a few modifications, so everything should work out of the box.
 
 The following are the most important config settings:
 
-
-`beets-lidarr` calls beets with `--nocopy --flat --quiet --write`. Make sure "move" is set to "no" in your config.
+`beets-lidarr` calls beets with `--flat --quiet --write`.
 ~~~
 import:
   write: yes
