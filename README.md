@@ -9,7 +9,6 @@ The `beets-lidarr` script automatically run beets [beets](https://beets.readthed
     - If Lidarr sent the album to the download client, this script can determine the correct tracker using Lidarr's grab history. If the torrent was manually downloaded, it tries both RED and OPS (provided their API key environmental variables exist).
 - Then, the hash and tracker are passed to [gazelle-origin](https://github.com/x1ppy/gazelle-origin), which downloads the album's metadata to a YAML file in the album folder/
 - Beets is then run with the [beets-originquery](https://github.com/x1ppy/beets-originquery) plugin, which uses the downloaded metadata in the Musicbrainz search query, and then writes the tags to the files.
-- Finally, `beets-lidarr` updates the release version in Lidarr to match what beets detected.
 
 ## Setup
 ### docker-compose

@@ -35,6 +35,7 @@ lidarr = {
     'album_title':     os.environ.get('lidarr_album_title'),
     'album_id':        os.environ.get('lidarr_album_id'),
     'album_mbid':      os.environ.get('lidarr_album_mbid'),
+    'albumrelease_mbid': os.environ.get('lidarr_albumrelease_mbid'),
     'torrent_hash':    os.environ.get('lidarr_download_id'),  # This is the torrent hash
     'addedtrackpaths': os.environ.get('lidarr_addedtrackpaths'),
 }
@@ -111,7 +112,8 @@ elif not lidarr['torrent_hash']:
     params['eventType'] = "trackFileImported"
     albumHistory = parse_response(
         requests.get(f'{lidarr_url}/api/v1/history/artist', params=params, headers=headers))
-    lidarr['torrent_hash'] = albumHistory[0]['downloadId']
+    if albumHistory:
+        lidarr['torrent_hash'] = albumHistory[0]['downloadId']
 
 # %% Get the folder where the album exists
 if lidarr['addedtrackpaths']:
@@ -127,29 +129,39 @@ logging.info(f"torrent url = {torrent_URL}")
 logging.info(f"torrent hash = {lidarr['torrent_hash']}")
 
 # %% Download album data from gazelle
-if "redacted" in torrent_URL:
-    trackers = ["red"]
-elif "orpheus" in torrent_URL:
-    trackers = ["ops"]
-else:
-    trackers = [key for key in api_keys if key in ['red', 'ops'] and api_keys[key] is not None]
-    if trackers:
-        logging.warning(f"Couldn't find the tracker url, trying {' and '.join(trackers).upper()}")
-
-for tracker in trackers:
-    origin_file = os.path.join(album_path, "origin-" + tracker + ".yaml")
-    if not os.path.isfile(origin_file):
-        logging.info(f"Looking for origin data on {tracker.upper()}")
-        cmd = ["gazelle-origin", "-o", origin_file, "--tracker", tracker, "--api-key", api_keys[tracker],
-               lidarr['torrent_hash']]
-        process = subprocess.run(cmd, capture_output=True, text=True)
-        if process.returncode:
-            logging.warning(f"gazelle-origin-{tracker.upper()}: {process.stderr.strip()}")
-        elif os.path.isfile(origin_file):
-            logging.info(f'Origin data saved at "{origin_file}"')
-            break
+if lidarr['torrent_hash']:
+    if "redacted" in torrent_URL:
+        trackers = ["red"]
+    elif "orpheus" in torrent_URL:
+        trackers = ["ops"]
     else:
-        logging.info(f"Origin data already exists at {origin_file}")
+        trackers = [key for key in api_keys if key in ['red', 'ops'] and api_keys[key] is not None]
+        if trackers:
+            logging.warning(f"Couldn't find the tracker url, trying {' and '.join(trackers).upper()}")
+
+    for tracker in trackers:
+        origin_file = os.path.join(album_path, "origin-" + tracker + ".yaml")
+        if not os.path.isfile(origin_file):
+            logging.info(f"Looking for origin data on {tracker.upper()}")
+            cmd = ["gazelle-origin", "-o", origin_file, "--tracker", tracker, "--api-key", api_keys[tracker],
+                   lidarr['torrent_hash']]
+            process = subprocess.run(cmd, capture_output=True, text=True)
+            if process.returncode:
+                logging.warning(f"gazelle-origin-{tracker.upper()}: {process.stderr.strip()}")
+            elif os.path.isfile(origin_file):
+                logging.info(f'Origin data saved at "{origin_file}"')
+                break
+        else:
+            logging.info(f"Origin data already exists at {origin_file}")
+
+# %% Get the old release ID so we can check if the one beets find is different
+if not lidarr['albumrelease_mbid']:
+    params = {'albumIds': lidarr['album_id']}
+    album = parse_response(requests.get(f'{lidarr_url}/api/v1/album', params=params, headers=headers))[0]
+    for release in album["releases"]:
+        if release["monitored"]:
+            lidarr['albumrelease_mbid'] = release['foreignReleaseId']
+
 
 # %% Run beets!
 cmd = ["beet", 'import', '-l', '/config/logs/beets.txt', '--flat', '-q', '--nocopy', '--write', album_path]
@@ -163,28 +175,18 @@ with process.stdout:
     except subprocess.CalledProcessError as err:
         logging.exception("Beets error!")
 
-# %% Parse the beets release ID and update the release edition in lidarr so they match (probably no reason to do this)
+# %% Check if the release ID changed, so we can justify wasting time on this
+if lidarr['albumrelease_mbid']:
+    cmd = ["beet", 'list', '-af', 'id=$mb_albumid', album_path]
+    process = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, BEETSDIR="/beets"))
+    musicbrainz_id = re.search('^id=(.+)$', process.stdout, re.M).group(1)
 
-cmd = ["beet", 'list', '-af', 'id=$mb_albumid', album_path]
-process = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, BEETSDIR="/beets"))
-musicbrainz_id = re.search('^id=(.+)$', process.stdout, re.M).group(1)
+    if musicbrainz_id != lidarr['albumrelease_mbid']:
+        logging.info(f"Updating lidarr release from https://musicbrainz.org/release/{lidarr['albumrelease_mbid']} "
+                     f"to https://musicbrainz.org/release/{musicbrainz_id}")
+    else:
+        logging.info("The lidarr release ID already matches the one from beets, nice!")
 
-params = {'albumIds': lidarr['album_id']}
-album = parse_response(requests.get(f'{lidarr_url}/api/v1/album', params=params, headers=headers))[0]
-album["anyReleaseOk"] = False
-release_new = release_old = None
-for release in album["releases"]:
-    if release["monitored"]:
-        release_old = release
-    release["monitored"] = release['foreignReleaseId'] == musicbrainz_id
-    if release["monitored"]:
-        release_new = release
-if release_new['foreignReleaseId'] != release_old['foreignReleaseId']:
-    logging.info(f"Updating lidarr release from https://musicbrainz.org/release/{release_old['foreignReleaseId']} "
-                 f"to https://musicbrainz.org/release/{release_new['foreignReleaseId']}")
-    parse_response(requests.put(f"{lidarr_url}/api/v1/album", params=params, headers=headers, data=json.dumps(album)))
-else:
-    logging.info("The lidarr release ID already matches the one from beets, nice!")
 
 logging.info(
     "Finished! I hope your perfectionist soul is satisfied. Rest, you have earned it! And remember to listen, not just catalog!")
